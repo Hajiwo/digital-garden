@@ -42,6 +42,17 @@ describe('content contract', () => {
     expect(slugifyArticleName('  My New_Post  ')).toBe('my-new-post')
   })
 
+  it('renders image URLs followed by an outer link', () => {
+    const article = buildArticle({ slug: 'image-note', sourcePath, raw: '![Portrait](https://example.com/image.avif,%20/alternate.avif)(https://example.com/source)', resources: [] })
+    expect(article.contentHtml).toContain('<a href="https://example.com/source">')
+    expect(article.contentHtml).toContain('<img src="https://example.com/image.avif" alt="Portrait"')
+  })
+
+  it('accepts a remote cover image and selects its first source', () => {
+    const article = buildArticle({ slug: 'remote-cover', sourcePath, raw: '---\ncover: https://example.com/cover.avif,%20/alternate.avif\n---\n# Remote cover', resources: [] })
+    expect(article.coverUrl).toBe('https://example.com/cover.avif')
+  })
+
   it('calculates a minimum reading time while ignoring code', () => {
     expect(calculateReadingTime('```ts\n' + 'word '.repeat(1000) + '\n``` short text')).toBe(1)
     expect(calculateReadingTime('word '.repeat(401))).toBe(3)

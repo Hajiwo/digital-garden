@@ -138,6 +138,17 @@ function normalizeOriginalUrl(data: FrontMatter, sourcePath: string): string | u
   }
 }
 
+function normalizeRemoteImageUrl(value: string, field: string, sourcePath: string): string {
+  const firstImage = value.split(/,(?:%20|\s)*/)[0]?.trim() ?? value
+  try {
+    const url = new URL(firstImage)
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsafe protocol')
+    return url.toString()
+  } catch {
+    throw new ContentValidationError(`field "${field}" must be a valid http or https image URL`, sourcePath)
+  }
+}
+
 function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleInput): Omit<Article, 'contentHtml' | 'headings' | 'resources'> {
   const title = inferTitle(data, body, input.slug)
   const description = inferDescription(data, body)
@@ -148,8 +159,9 @@ function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleI
     throw new ContentValidationError('field "readingTime" must be a positive number', input.sourcePath)
   }
   const readingTime = typeof providedReadingTime === 'number' ? providedReadingTime : calculateReadingTime(body)
-  const cover = data.cover === undefined ? undefined : assertSafeResourcePath(asNonEmptyString(data.cover, 'cover', input.sourcePath), input.sourcePath)
-  if (cover && !input.resources.includes(cover)) throw new ContentValidationError(`cover resource "${cover}" does not exist`, input.sourcePath)
+  const coverValue = data.cover === undefined ? undefined : asNonEmptyString(data.cover, 'cover', input.sourcePath)
+  const cover = coverValue && (/^https?:\/\//i.test(coverValue) ? normalizeRemoteImageUrl(coverValue, 'cover', input.sourcePath) : assertSafeResourcePath(coverValue, input.sourcePath))
+  if (cover && !/^https?:\/\//i.test(cover) && !input.resources.includes(cover)) throw new ContentValidationError(`cover resource "${cover}" does not exist`, input.sourcePath)
   if (data.featured !== undefined && typeof data.featured !== 'boolean') throw new ContentValidationError('field "featured" must be a boolean', input.sourcePath)
   if (data.draft !== undefined && typeof data.draft !== 'boolean') throw new ContentValidationError('field "draft" must be a boolean', input.sourcePath)
   return {
@@ -158,7 +170,7 @@ function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleI
     description,
     publishedAt: normalizeIsoDate(data.date ?? data.publishedAt ?? data.published ?? data.created ?? data.downloaded ?? '1970-01-01', 'date', input.sourcePath),
     ...(data.updated === undefined ? {} : { updatedAt: normalizeIsoDate(data.updated, 'updated', input.sourcePath) }),
-    ...(cover ? { coverUrl: publicResourceUrl(input.slug, cover) } : {}),
+    ...(cover ? { coverUrl: /^https?:\/\//i.test(cover) ? cover : publicResourceUrl(input.slug, cover) } : {}),
     ...(originalUrl ? { originalUrl } : {}),
     ...(data.category === undefined ? {} : { category: asNonEmptyString(data.category, 'category', input.sourcePath) }),
     tags,
@@ -172,6 +184,14 @@ function rewriteLocalLinks(markdown: string, slug: string): string {
     if (/^(https?:|mailto:|#)/i.test(target)) return whole
     const safe = assertSafeResourcePath(target)
     return `${start}${publicResourceUrl(slug, safe)}${end}`
+  })
+}
+
+function normalizeWrappedImageSyntax(markdown: string): string {
+  return markdown.replace(/!\[([^\]]*)\]\(([^)\n]+)\)\((https?:\/\/[^)\n]+)\)/g, (whole, alt, imageTarget, href) => {
+    const firstImage = imageTarget.split(/,(?:%20|\s)*/)[0]?.trim()
+    if (!firstImage) return whole
+    return `[![${alt}](${firstImage})](${href})`
   })
 }
 
@@ -193,8 +213,9 @@ function renderMarkdown(markdown: string, headings: ArticleHeading[]): string {
 
 export function buildArticle(input: BuildArticleInput): Article & { draft: boolean } {
   const parsed = matter(input.raw)
-  const metadata = normalizeMetadata(parsed.data, parsed.content, input)
+  const normalizedMarkdown = normalizeWrappedImageSyntax(parsed.content)
+  const metadata = normalizeMetadata(parsed.data, normalizedMarkdown, input)
   const resources: ArticleResource[] = [...new Set(input.resources)].sort().map((path) => ({ path, publicUrl: publicResourceUrl(input.slug, path), type: resourceType(path) }))
-  const headings = extractHeadings(parsed.content)
-  return { ...metadata, contentHtml: renderMarkdown(rewriteLocalLinks(parsed.content, input.slug), headings), headings, resources, draft: parsed.data.draft === true }
+  const headings = extractHeadings(normalizedMarkdown)
+  return { ...metadata, contentHtml: renderMarkdown(rewriteLocalLinks(normalizedMarkdown, input.slug), headings), headings, resources, draft: parsed.data.draft === true }
 }

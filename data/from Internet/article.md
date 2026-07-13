@@ -9,7 +9,7 @@ tags:
   - clippings, computer vision
 ---
 
-[![Portrait of Vincent Sitzmann](https://www.vincentsitzmann.com/_astro/vincent.Dvoy81k6_1n4HGu.avif,%20/_astro/vincent.Dvoy81k6_1n4HGu.avif)](https://www.vincentsitzmann.com/)
+![Portrait of Vincent Sitzmann](https://www.vincentsitzmann.com/_astro/vincent.Dvoy81k6_1n4HGu.avif,%20/_astro/vincent.Dvoy81k6_1n4HGu.avif)(https://www.vincentsitzmann.com/)
 
 I believe that computer vision as we know it is about to go away.
 
