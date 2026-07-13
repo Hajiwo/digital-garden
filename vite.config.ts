@@ -17,6 +17,8 @@ const imageExtensions = new Set(['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg
 
 type Category = { name: string; description?: string }
 type Upload = { path: string; data: string }
+type AboutSettings = { eyebrow?: string; title?: string; intro?: string; body?: string; quote?: string; quoteAuthor?: string; linkLabel?: string; linkUrl?: string; ctaLabel?: string; ctaUrl?: string }
+type EditableSite = { background?: string; title?: string; description?: string; about?: AboutSettings }
 
 async function readJson<T>(path: string, fallback: T): Promise<T> {
   return readFile(path, 'utf8').then((value) => JSON.parse(value) as T).catch(() => fallback)
@@ -69,7 +71,8 @@ async function updateArticleCategory(from: string, to?: string): Promise<void> {
 
 async function developerState() {
   const categories = await readJson<Category[]>(categoriesFile, [])
-  const site = await readJson<{ background?: string; title?: string; description?: string }>(siteFile, {})
+  const site = await readJson<EditableSite>(siteFile, {})
+  const about = site.about ?? {}
   const generatedArticles = await readJson<Array<{ tags?: string[] }>>(join(root, 'public', 'generated-content', 'articles.json'), [])
   const tagCounts = new Map<string, number>()
   for (const article of generatedArticles) for (const tag of article.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
@@ -79,8 +82,20 @@ async function developerState() {
     categories,
     tags: [...tagCounts].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ name, count })),
     background: site.background ?? '',
-    siteTitle: site.title ?? 'Cyclopedia',
+    siteTitle: site.title ?? 'Read++',
     siteDescription: site.description ?? 'Ideas worth keeping, thoughtfully collected.\nA living library of technology, systems, and design.',
+    about: {
+      eyebrow: about.eyebrow ?? 'ABOUT THIS PLACE',
+      title: about.title ?? 'A library for the\nperpetually curious.',
+      intro: about.intro ?? 'Read++ is a personal digital knowledge system: part magazine, part garden, part long-term memory.',
+      body: about.body ?? 'It collects considered writing about technology, software, design, and the ideas that connect them. Nothing here chases a feed. The goal is slower and more durable—to make complex subjects approachable and worth returning to.',
+      quote: about.quote ?? '“We write to taste life twice, in the moment and in retrospect.”',
+      quoteAuthor: about.quoteAuthor ?? '— Anaïs Nin',
+      linkLabel: about.linkLabel ?? '',
+      linkUrl: about.linkUrl ?? '',
+      ctaLabel: about.ctaLabel ?? 'Enter the library',
+      ctaUrl: about.ctaUrl ?? '/explore',
+    },
     backgrounds: backgrounds.filter((entry) => entry.isFile() && imageExtensions.has(extname(entry.name).toLowerCase())).map((entry) => `/background/${entry.name}`).sort(),
     articleCount: articles.length,
   }
@@ -161,9 +176,32 @@ function developerPlugin(): Plugin {
             if (!description) throw new Error('Homepage description is required.')
             if (title.length > 80) throw new Error('Homepage title must be 80 characters or fewer.')
             if (description.length > 300) throw new Error('Homepage description must be 300 characters or fewer.')
-            const site = await readJson<{ background?: string; title?: string; description?: string }>(siteFile, {})
+            const site = await readJson<EditableSite>(siteFile, {})
             site.title = title
             site.description = description
+            const aboutText = (key: string, fallback: string, maxLength: number) => {
+              const value = String(body[key] ?? fallback).trim()
+              if (value.length > maxLength) throw new Error(`About ${key} must be ${maxLength} characters or fewer.`)
+              return value
+            }
+            const linkUrl = aboutText('aboutLinkUrl', site.about?.linkUrl ?? '', 500)
+            const ctaUrl = aboutText('aboutCtaUrl', site.about?.ctaUrl ?? '/explore', 500)
+            const validateLink = (value: string, field: string) => {
+              if (value && !value.startsWith('/') && !/^https?:\/\//i.test(value)) throw new Error(`${field} must be an http(s) URL or local path.`)
+              return value
+            }
+            site.about = {
+              eyebrow: aboutText('aboutEyebrow', site.about?.eyebrow ?? 'ABOUT THIS PLACE', 80),
+              title: aboutText('aboutTitle', site.about?.title ?? 'A library for the\nperpetually curious.', 180),
+              intro: aboutText('aboutIntro', site.about?.intro ?? '', 500),
+              body: aboutText('aboutBody', site.about?.body ?? '', 1200),
+              quote: aboutText('aboutQuote', site.about?.quote ?? '', 300),
+              quoteAuthor: aboutText('aboutQuoteAuthor', site.about?.quoteAuthor ?? '', 120),
+              linkLabel: aboutText('aboutLinkLabel', site.about?.linkLabel ?? '', 100),
+              linkUrl: validateLink(linkUrl, 'About link'),
+              ctaLabel: aboutText('aboutCtaLabel', site.about?.ctaLabel ?? 'Enter the library', 80),
+              ctaUrl: validateLink(ctaUrl, 'About button'),
+            }
             await writeFile(siteFile, `${JSON.stringify(site, null, 2)}\n`)
             await generateContent({ includeDrafts: true })
             return writeResponse(response, 200, { ok: true })

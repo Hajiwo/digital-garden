@@ -7,7 +7,7 @@ import { articles, categories, categoryCounts, site } from '../data'
 export default function Home() {
   const latestArticle = articles[0]
   const heroStyle = site.background ? { backgroundImage: `linear-gradient(90deg,rgba(20,43,39,.94),rgba(20,43,39,.48)),url("${site.background}")` } : undefined
-  const title = site.title || 'Cyclopedia'
+  const title = site.title || 'Read++'
   const description = site.description || 'Ideas worth keeping, thoughtfully collected.\nA living library of technology, systems, and design.'
   const descriptionLines = description.split('\n')
   return <>

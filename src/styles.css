@@ -77,3 +77,20 @@ h1,h2,p { margin-top:0; }
 @media(prefers-reduced-motion:reduce){.bonfire *{animation:none!important}.embers{display:none}.bonfire-aura{opacity:.55}}
 .realistic-bonfire { bottom:0; filter:drop-shadow(0 5px 8px rgba(35,5,0,.35)); height:190px; pointer-events:none; position:fixed; right:0; width:170px; z-index:18; }.realistic-bonfire canvas { display:block; height:190px; width:170px; }.to-top { bottom:168px; right:48px; }
 @media(max-width:600px){.realistic-bonfire{transform:scale(.78);transform-origin:100% 100%}.to-top{bottom:132px;right:24px}}
+
+/* Personalize the reading surface without changing article content. */
+:root { --body-font: Inter, ui-sans-serif, system-ui, sans-serif; --type-scale:1; }
+:root[data-font="serif"] { --body-font: Georgia, 'Times New Roman', serif; --serif: Georgia, 'Times New Roman', serif; }
+:root[data-font="humanist"] { --body-font: 'Avenir Next', Avenir, 'Segoe UI', sans-serif; --serif: 'Avenir Next', Avenir, 'Segoe UI', sans-serif; }
+:root[data-font="mono"] { --body-font: ui-monospace, SFMono-Regular, Menlo, monospace; --serif: ui-monospace, SFMono-Regular, Menlo, monospace; }
+:root[data-font="classic"] { --body-font: 'Palatino Linotype', Palatino, Georgia, serif; --serif: 'Palatino Linotype', Palatino, Georgia, serif; }
+:root[data-size="small"] { --type-scale:.9; }
+:root[data-size="large"] { --type-scale:1.12; }
+body { font-family:var(--body-font); font-size:calc(16px * var(--type-scale)); }
+.prose { font-size:calc(18px * var(--type-scale)); }
+.article-title > p:not(.eyebrow),.intro,.about-copy p { font-size:calc(22px * var(--type-scale)); }
+.font-switch { align-items:center; border:1px solid color-mix(in srgb,var(--line) 75%,transparent); display:flex; gap:4px; padding:5px 7px; }
+.font-switch span:not(.sr-only) { color:var(--muted); font-size:11px; font-weight:700; }
+.font-switch select { appearance:none; background:transparent; border:0; color:var(--ink); cursor:pointer; font-size:10px; letter-spacing:.04em; max-width:76px; outline:0; }
+.about-links { display:flex; flex-wrap:wrap; gap:12px; margin:30px 0; }
+.about-links a { border-bottom:1px solid var(--accent); color:var(--accent); font-size:13px; padding-bottom:4px; }
