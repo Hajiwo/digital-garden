@@ -2,4 +2,46 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowUp, BookOpen, ExternalLink, X } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { articles } from '../data'
-export default function Article() { const { slug } = useParams(), [progress, setProgress] = useState(0), [reading, setReading] = useState(false); const index = articles.findIndex((entry) => entry.slug === slug), article = articles[index]; useEffect(() => { scrollTo(0, 0); const update = () => setProgress(Math.min(100, scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight) * 100)); addEventListener('scroll', update, { passive: true }); return () => removeEventListener('scroll', update) }, [slug]); useEffect(() => { const exit = (event: KeyboardEvent) => event.key === 'Escape' && setReading(false); addEventListener('keydown', exit); return () => removeEventListener('keydown', exit) }, []); if (!article) return <div className="page empty">Article not found. <Link to="/">Return home</Link></div>; const coverStyle = article.cover ? { backgroundImage: `linear-gradient(135deg,rgba(16,43,43,.1),rgba(16,43,43,.25)),url("${article.cover}")` } : undefined; return <article className={reading ? 'article-page reading' : 'article-page'}><div className="progress" style={{ width: `${progress}%` }} /><button className="reading-toggle" onClick={() => setReading(!reading)}>{reading ? <X /> : <BookOpen />}{reading ? 'Exit' : 'Reading mode'}</button><header className="article-hero"><Link to="/explore"><ArrowLeft /> Back to library</Link><div className="article-cover" style={coverStyle} /><div className="article-title"><p className="eyebrow">{article.category}</p><h1>{article.title}</h1><p>{article.description}</p><div className="meta"><time>{new Date(article.date).toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' })}</time><span>{article.readingTime} minute read</span></div>{article.originalUrl&&<a className="original-link" href={article.originalUrl} target="_blank" rel="noopener noreferrer">Read on the original website <ExternalLink/></a>}</div></header><div className="article-layout"><aside><b>In this article</b>{article.headings.filter(({ depth }) => depth > 1).map((heading) => <a key={heading.id} href={`#${heading.id}`}>{heading.text}</a>)}</aside><div className="prose"><div dangerouslySetInnerHTML={{ __html: article.contentHtml }} /><div className="next-prev">{index > 0 && <Link to={`/articles/${articles[index - 1].slug}`}><small>Newer</small>{articles[index - 1].title}</Link>}{index < articles.length - 1 && <Link to={`/articles/${articles[index + 1].slug}`}><small>Next story</small>{articles[index + 1].title}</Link>}</div></div></div><button className="to-top" onClick={() => scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top"><ArrowUp /></button></article> }
+
+export default function Article() {
+  const { slug } = useParams()
+  const [progress, setProgress] = useState(0)
+  const [reading, setReading] = useState(false)
+  const index = articles.findIndex((entry) => entry.slug === slug)
+  const article = articles[index]
+
+  useEffect(() => {
+    scrollTo(0, 0)
+    const update = () => setProgress(Math.min(100, scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight) * 100))
+    addEventListener('scroll', update, { passive: true })
+    return () => removeEventListener('scroll', update)
+  }, [slug])
+
+  useEffect(() => {
+    const exit = (event: KeyboardEvent) => event.key === 'Escape' && setReading(false)
+    addEventListener('keydown', exit)
+    return () => removeEventListener('keydown', exit)
+  }, [])
+
+  if (!article) return <div className="page empty">Article not found. <Link to="/">Return home</Link></div>
+
+  const coverStyle = article.cover ? { backgroundImage: `linear-gradient(135deg,rgba(16,43,43,.1),rgba(16,43,43,.25)),url("${article.cover}")` } : undefined
+  const headings = article.headings.filter(({ depth }) => depth > 1)
+  const tableOfContents = headings.map((heading) => <a key={heading.id} href={`#${heading.id}`}>{heading.text}</a>)
+
+  return <article className={reading ? 'article-page reading' : 'article-page'}>
+    <div className="progress" style={{ width: `${progress}%` }} />
+    <button className="reading-toggle" onClick={() => setReading(!reading)}>{reading ? <X /> : <BookOpen />}{reading ? 'Exit' : 'Reading mode'}</button>
+    <header className="article-hero">
+      <Link to="/explore"><ArrowLeft /> Back to library</Link>
+      <div className="article-cover" style={coverStyle} />
+      <div className="article-title"><p className="eyebrow">{article.category}</p><h1>{article.title}</h1><p>{article.description}</p><div className="meta"><time>{new Date(article.date).toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' })}</time><span>{article.readingTime} minute read</span></div>{article.originalUrl && <a className="original-link" href={article.originalUrl} target="_blank" rel="noopener noreferrer">Read on the original website <ExternalLink /></a>}</div>
+    </header>
+    <div className="article-layout">
+      <aside><b>In this article</b>{tableOfContents}</aside>
+      {headings.length > 0 && <details className="mobile-toc"><summary>文章目录 · {headings.length} 节</summary><nav>{tableOfContents}</nav></details>}
+      <div className="prose"><div dangerouslySetInnerHTML={{ __html: article.contentHtml }} /><div className="next-prev">{index > 0 && <Link to={`/articles/${articles[index - 1].slug}`}><small>Newer</small>{articles[index - 1].title}</Link>}{index < articles.length - 1 && <Link to={`/articles/${articles[index + 1].slug}`}><small>Next story</small>{articles[index + 1].title}</Link>}</div></div>
+    </div>
+    <button className="to-top" onClick={() => scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top"><ArrowUp /></button>
+  </article>
+}
