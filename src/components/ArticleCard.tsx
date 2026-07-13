@@ -1,0 +1,5 @@
+import { motion } from 'framer-motion'
+import { ArrowUpRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import type { Article } from '../types'
+export default function ArticleCard({ article, large = false }: { article: Article; large?: boolean }) { const style = article.cover ? { backgroundImage: `linear-gradient(135deg,rgba(16,43,43,.12),rgba(16,43,43,.45)),url("${article.cover}")` } : undefined; return <motion.article className={`card ${large ? 'large' : ''}`} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .55 }}><Link to={`/articles/${article.slug}`} aria-label={article.title}><div className="cover" style={style}><span>{article.category}</span><ArrowUpRight /></div><div className="card-body"><div className="meta"><time>{new Date(article.date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}</time><span>{article.readingTime} min read</span></div><h2>{article.title}</h2><p>{article.description}</p><div className="tags">{article.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div></div></Link></motion.article> }
