@@ -1,5 +1,17 @@
 [
-  { "name": "Artificial Intelligence", "description": "Agents, language models, and intelligent systems." },
-  { "name": "Distributed Systems", "description": "Coordination, networks, and resilient software." },
-  { "name": "Knowledge Design", "description": "Tools and practices for learning and memory." }
+  {
+    "name": "Artificial Intelligence",
+    "description": "Agents, language models, and intelligent systems."
+  },
+  {
+    "name": "Distributed Systems",
+    "description": "Coordination, networks, and resilient software."
+  },
+  {
+    "name": "Knowledge Design",
+    "description": "Tools and practices for learning and memory."
+  },
+  {
+    "name": "zhihu"
+  }
 ]

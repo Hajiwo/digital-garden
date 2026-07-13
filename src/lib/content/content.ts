@@ -122,13 +122,27 @@ function normalizeTags(data: FrontMatter, sourcePath: string): string[] {
   if (value === undefined || value === null || value === '') return []
   if (typeof value === 'string') return value.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean)
   if (!Array.isArray(value) || value.some((tag) => typeof tag !== 'string')) throw new ContentValidationError('field "tags" must be a string or an array of strings', sourcePath)
-  return value.map((tag) => String(tag).trim()).filter(Boolean)
+  return value.flatMap((tag) => String(tag).split(/[,，]/)).map((tag) => tag.trim()).filter(Boolean)
+}
+
+function normalizeOriginalUrl(data: FrontMatter, sourcePath: string): string | undefined {
+  const value = data.original_link ?? data.originalUrl ?? data.source
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string') throw new ContentValidationError('field "original_link" must be a URL string', sourcePath)
+  try {
+    const url = new URL(value)
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsafe protocol')
+    return url.toString()
+  } catch {
+    throw new ContentValidationError('field "original_link" must be a valid http or https URL', sourcePath)
+  }
 }
 
 function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleInput): Omit<Article, 'contentHtml' | 'headings' | 'resources'> {
   const title = inferTitle(data, body, input.slug)
   const description = inferDescription(data, body)
   const tags = normalizeTags(data, input.sourcePath)
+  const originalUrl = normalizeOriginalUrl(data, input.sourcePath)
   const providedReadingTime = data.readingTime
   if (providedReadingTime !== undefined && (typeof providedReadingTime !== 'number' || !Number.isFinite(providedReadingTime) || providedReadingTime <= 0)) {
     throw new ContentValidationError('field "readingTime" must be a positive number', input.sourcePath)
@@ -145,6 +159,7 @@ function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleI
     publishedAt: normalizeIsoDate(data.date ?? data.publishedAt ?? data.published ?? data.created ?? data.downloaded ?? '1970-01-01', 'date', input.sourcePath),
     ...(data.updated === undefined ? {} : { updatedAt: normalizeIsoDate(data.updated, 'updated', input.sourcePath) }),
     ...(cover ? { coverUrl: publicResourceUrl(input.slug, cover) } : {}),
+    ...(originalUrl ? { originalUrl } : {}),
     ...(data.category === undefined ? {} : { category: asNonEmptyString(data.category, 'category', input.sourcePath) }),
     tags,
     featured: data.featured === true,

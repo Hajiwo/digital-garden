@@ -23,3 +23,15 @@ The registry is stored in `data/categories.json`. Renaming a category also updat
 Uploaded images are stored in `public/background/`; the active selection is stored in `data/site.json`. Use Reset Background to return to the built-in visual treatment.
 
 After a change, use **Apply changes and reload**. All authored data and selected backgrounds are normal Git files and can be committed and pushed.
+
+## Homepage identity
+
+The Homepage Identity panel edits the public homepage title and description. These values are stored with the background selection in `data/site.json`.
+
+## Visual styles
+
+The palette selector in the site header switches between Editorial, Reading, Geek, and Minimal presentation modes. The selection is stored locally in the browser and remains independent of the light/dark color-theme control.
+
+## Original source links
+
+Article front matter may include `original_link: "https://example.com/article"`. Existing `source` and `originalUrl` URL fields are also recognized. The article reader displays a safe external link to the original website.

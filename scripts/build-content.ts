@@ -25,6 +25,7 @@ function toSummary(article: Article): ArticleSummary {
     publishedAt: article.publishedAt,
     ...(article.updatedAt ? { updatedAt: article.updatedAt } : {}),
     ...(article.coverUrl ? { coverUrl: article.coverUrl } : {}),
+    ...(article.originalUrl ? { originalUrl: article.originalUrl } : {}),
     ...(article.category ? { category: article.category } : {}),
     tags: article.tags,
     featured: article.featured,

@@ -66,6 +66,12 @@ describe('content contract', () => {
     expect(article.publishedAt).toBe('2026-07-13')
     expect(article.description).toContain('第一段内容')
     expect(article.headings[0].id).toBe('第一个机制-认知资源')
+    expect(article.originalUrl).toBe('https://www.zhihu.com/example')
+  })
+
+  it('rejects unsafe original links', () => {
+    const raw = '---\ntitle: Unsafe\noriginal_link: javascript:alert(1)\n---\nText.'
+    expect(() => buildArticle({ slug: 'unsafe', sourcePath, raw, resources: [] })).toThrow('valid http or https URL')
   })
 
   it('calculates reading time for CJK text', () => {

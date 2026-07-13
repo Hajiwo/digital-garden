@@ -19,6 +19,7 @@ export interface ArticleSummary {
   publishedAt: string
   updatedAt?: string
   coverUrl?: string
+  originalUrl?: string
   category?: string
   tags: string[]
   featured: boolean

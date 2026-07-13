@@ -1,11 +1,14 @@
 ---
-id: "2059921089308923819"
-title: "为什么越聪明的人越单纯？"
-author: "理性情绪实验室"
-type: zhihu-answer
-source: "https://www.zhihu.com/question/601286348/answer/2059921089308923819"
-downloaded: "2026-07-13"
+title: 为什么越聪明的人越单纯？
+description: from Zhihu
+original_link: "https://www.zhihu.com/question/601286348/answer/2059921089308923819"
+date: 2026-07-14
+tags:
+  - psychology, human
+draft: true
 ---
+
+
 我导是我见过最聪明的人之一。做[情绪神经科学](https://zhida.zhihu.com/search?content_id=789610458&content_type=Answer&match_order=1&q=%E6%83%85%E7%BB%AA%E7%A5%9E%E7%BB%8F%E7%A7%91%E5%AD%A6&zhida_source=entity),思路快到我们经常跟不上,他一句话能把我卡了两周的问题点透。
 
 但就是这么个人,上个月被楼下卖水果的多算了二十块钱,回来还挺高兴,说今天的芒果特别甜。我们组里一个师姐去帮他理论,发现那摊主对他这种"熟客"已经这么干了小半年了。

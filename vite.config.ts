@@ -58,12 +58,14 @@ async function updateArticleCategory(from: string, to?: string): Promise<void> {
 
 async function developerState() {
   const categories = await readJson<Category[]>(categoriesFile, [])
-  const site = await readJson<{ background?: string }>(siteFile, {})
+  const site = await readJson<{ background?: string; title?: string; description?: string }>(siteFile, {})
   const backgrounds = await readdir(backgroundDirectory, { withFileTypes: true }).catch(() => [])
   const entries = await readdir(dataDirectory, { withFileTypes: true })
   return {
     categories,
     background: site.background ?? '',
+    siteTitle: site.title ?? 'Cyclopedia',
+    siteDescription: site.description ?? 'Ideas worth keeping, thoughtfully collected.\nA living library of technology, systems, and design.',
     backgrounds: backgrounds.filter((entry) => entry.isFile() && imageExtensions.has(extname(entry.name).toLowerCase())).map((entry) => `/background/${entry.name}`).sort(),
     articleCount: entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).length,
   }
@@ -142,6 +144,20 @@ function developerPlugin(): Plugin {
             } else throw new Error('Unknown category operation.')
             categories.sort((a, b) => a.name.localeCompare(b.name))
             await writeFile(categoriesFile, `${JSON.stringify(categories, null, 2)}\n`)
+            await generateContent({ includeDrafts: true })
+            return writeResponse(response, 200, { ok: true })
+          }
+          if (action === 'site') {
+            const title = String(body.title ?? '').trim()
+            const description = String(body.description ?? '').trim()
+            if (!title) throw new Error('Homepage title is required.')
+            if (!description) throw new Error('Homepage description is required.')
+            if (title.length > 80) throw new Error('Homepage title must be 80 characters or fewer.')
+            if (description.length > 300) throw new Error('Homepage description must be 300 characters or fewer.')
+            const site = await readJson<{ background?: string; title?: string; description?: string }>(siteFile, {})
+            site.title = title
+            site.description = description
+            await writeFile(siteFile, `${JSON.stringify(site, null, 2)}\n`)
             await generateContent({ includeDrafts: true })
             return writeResponse(response, 200, { ok: true })
           }
