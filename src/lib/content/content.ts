@@ -30,8 +30,8 @@ export function normalizeIsoDate(value: unknown, field: string, sourcePath = 'ar
 }
 
 export function assertSafeSlug(slug: string, sourcePath = 'data'): string {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    throw new ContentValidationError('article directory name must be a non-empty lowercase kebab-case slug', sourcePath)
+  if (!/^[\p{Letter}\p{Number}]+(?:-[\p{Letter}\p{Number}]+)*$/u.test(slug)) {
+    throw new ContentValidationError('article slug must contain only letters, numbers, and single hyphens', sourcePath)
   }
   return slug
 }

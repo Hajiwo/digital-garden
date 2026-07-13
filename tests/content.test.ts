@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertSafeResourcePath, assertSafeSlug, assertUniqueSlugs, buildArticle, calculateReadingTime, excludeProductionDrafts, extractHeadings, normalizeIsoDate, publicResourceUrl, sortArticles } from '../src/lib/content/content'
 import { buildTagIndex } from '../src/lib/content/tags'
+import { deriveArticleSlug, slugifyArticleName } from '../src/lib/content/discovery'
 
 const sourcePath = 'data/example/article.md'
 const valid = `---
@@ -21,7 +22,7 @@ describe('content contract', () => {
   })
 
   it('rejects unsafe slugs and article-local paths', () => {
-    expect(() => assertSafeSlug('../outside')).toThrow('kebab-case')
+    expect(() => assertSafeSlug('../outside')).toThrow('letters, numbers')
     expect(() => assertSafeResourcePath('../secret.png')).toThrow('unsafe')
     expect(() => assertSafeResourcePath('/secret.png')).toThrow('unsafe')
     expect(assertSafeResourcePath('./resources/image.png')).toBe('resources/image.png')
@@ -31,6 +32,14 @@ describe('content contract', () => {
 
   it('detects duplicate slugs', () => {
     expect(() => assertUniqueSlugs(['first', 'first'])).toThrow('duplicate slug')
+  })
+
+  it('derives stable slugs from arbitrary Markdown filenames and folders', () => {
+    expect(deriveArticleSlug('from Internet', 'notes.md', 1)).toBe('from-internet')
+    expect(deriveArticleSlug('research', 'article.md', 2)).toBe('research')
+    expect(deriveArticleSlug('research', 'Vision Notes.md', 2)).toBe('research-vision-notes')
+    expect(deriveArticleSlug('研究资料', '视觉.md', 2)).toBe('研究资料-视觉')
+    expect(slugifyArticleName('  My New_Post  ')).toBe('my-new-post')
   })
 
   it('calculates a minimum reading time while ignoring code', () => {

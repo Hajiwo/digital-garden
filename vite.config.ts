@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import matter from 'gray-matter'
 import { defineConfig, type Plugin } from 'vite'
 import { generateContent } from './scripts/build-content'
-import { assertSafeResourcePath, assertSafeSlug, buildArticle } from './src/lib/content/content'
+import { assertSafeResourcePath, assertSafeSlug } from './src/lib/content/content'
 
 const root = dirname(fileURLToPath(import.meta.url))
 const dataDirectory = join(root, 'data')
@@ -40,9 +40,20 @@ function writeResponse(response: import('node:http').ServerResponse, status: num
   response.end(JSON.stringify(body))
 }
 
+async function markdownFilesIn(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true })
+  const files = await Promise.all(entries.map((entry) => {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory() && !entry.name.startsWith('.')) return markdownFilesIn(path)
+    return entry.isFile() && extname(entry.name).toLowerCase() === '.md' ? [path] : []
+  }))
+  return files.flat()
+}
+
 async function articleFiles(): Promise<string[]> {
   const entries = await readdir(dataDirectory, { withFileTypes: true })
-  return entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => join(dataDirectory, entry.name, 'article.md'))
+  const directories = entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+  return (await Promise.all(directories.map((entry) => markdownFilesIn(join(dataDirectory, entry.name))))).flat().sort()
 }
 
 async function updateArticleCategory(from: string, to?: string): Promise<void> {
@@ -63,7 +74,7 @@ async function developerState() {
   const tagCounts = new Map<string, number>()
   for (const article of generatedArticles) for (const tag of article.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
   const backgrounds = await readdir(backgroundDirectory, { withFileTypes: true }).catch(() => [])
-  const entries = await readdir(dataDirectory, { withFileTypes: true })
+  const articles = await articleFiles()
   return {
     categories,
     tags: [...tagCounts].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ name, count })),
@@ -71,7 +82,7 @@ async function developerState() {
     siteTitle: site.title ?? 'Cyclopedia',
     siteDescription: site.description ?? 'Ideas worth keeping, thoughtfully collected.\nA living library of technology, systems, and design.',
     backgrounds: backgrounds.filter((entry) => entry.isFile() && imageExtensions.has(extname(entry.name).toLowerCase())).map((entry) => `/background/${entry.name}`).sort(),
-    articleCount: entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).length,
+    articleCount: articles.length,
   }
 }
 
@@ -94,7 +105,7 @@ function developerPlugin(): Plugin {
           if (action === 'import') {
             const slug = assertSafeSlug(String(body.slug ?? ''))
             const uploads = body.files as Upload[]
-            if (!Array.isArray(uploads) || uploads.length === 0) throw new Error('Choose a folder containing article.md.')
+            if (!Array.isArray(uploads) || uploads.length === 0) throw new Error('Choose a folder containing at least one Markdown file.')
             const target = join(dataDirectory, slug)
             if (await stat(target).then(() => true).catch(() => false)) throw new Error(`An article folder named "${slug}" already exists.`)
             const temporary = await mkdtemp(join(dataDirectory, '.import-'))
@@ -106,19 +117,11 @@ function developerPlugin(): Plugin {
                 await mkdir(dirname(destination), { recursive: true })
                 await writeFile(destination, Buffer.from(String(upload.data ?? ''), 'base64'))
               }
-              let markdownName = 'article.md'
-              let markdown = await readFile(join(temporary, markdownName), 'utf8').catch(() => '')
-              if (!markdown) {
-                const rootMarkdown = uploads.map((upload) => assertSafeResourcePath(upload.path)).filter((path) => !path.includes('/') && path.toLowerCase().endsWith('.md'))
-                if (rootMarkdown.length !== 1) throw new Error('The selected folder must contain article.md or exactly one Markdown file at its root.')
-                markdownName = rootMarkdown[0]
-                markdown = await readFile(join(temporary, markdownName), 'utf8')
-                await rename(join(temporary, markdownName), join(temporary, 'article.md'))
-              }
-              const resources = uploads.map((upload) => assertSafeResourcePath(upload.path)).filter((path) => path !== markdownName)
-              buildArticle({ slug, sourcePath: `data/${slug}/article.md`, raw: markdown, resources })
+              const markdownPaths = uploads.map((upload) => assertSafeResourcePath(upload.path)).filter((path) => path.toLowerCase().endsWith('.md'))
+              if (!markdownPaths.length) throw new Error('The selected folder must contain at least one Markdown file.')
               await rename(temporary, target)
-              await generateContent({ includeDrafts: true })
+              try { await generateContent({ includeDrafts: true }) }
+              catch (error) { await rm(target, { recursive: true, force: true }); await generateContent({ includeDrafts: true }); throw error }
             } catch (error) {
               await rm(temporary, { recursive: true, force: true })
               throw error
