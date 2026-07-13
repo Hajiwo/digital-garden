@@ -111,6 +111,6 @@ describe('content contract', () => {
   })
 
   it('derives categories and counts dynamically from distinct tags', () => {
-    expect(buildTagIndex([{ tags: ['AI', 'Agents'] }, { tags: ['AI', 'Design'] }, { tags: [] }])).toEqual({ categories: ['Agents', 'AI', 'Design'], counts: { Agents: 1, AI: 2, Design: 1 } })
+    expect(buildTagIndex([{ tags: ['AI', 'Agents'] }, { tags: ['AI', 'Design'] }, { tags: [] }])).toEqual({ categories: ['AI'], counts: { AI: 2 }, allTags: ['Agents', 'AI', 'Design'], tagCounts: { Agents: 1, AI: 2, Design: 1 } })
   })
 })

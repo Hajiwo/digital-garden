@@ -12,3 +12,4 @@ export const articles: Article[] = documents.flatMap((article) => article ? [{ s
 const tagIndex = buildTagIndex(articles)
 export const categories = tagIndex.categories
 export const categoryCounts = tagIndex.counts
+export const tags = tagIndex.allTags
