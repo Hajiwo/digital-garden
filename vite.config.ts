@@ -106,6 +106,25 @@ function developerPlugin(): Plugin {
     name: 'cyclopedia-developer-mode',
     apply: 'serve',
     configureServer(server) {
+      let refreshPromise: Promise<unknown> | undefined
+      const refreshContent = () => {
+        if (!refreshPromise) refreshPromise = generateContent({ includeDrafts: true }).finally(() => { refreshPromise = undefined })
+        return refreshPromise
+      }
+      server.watcher.on('all', (_event, changedPath) => {
+        const normalizedPath = resolve(changedPath)
+        if (normalizedPath === dataDirectory || normalizedPath.startsWith(`${dataDirectory}/`)) void refreshContent().catch((error: unknown) => console.error('Content refresh failed:', error))
+      })
+      server.middlewares.use(async (request, response, next) => {
+        const acceptsHtml = request.headers.accept?.includes('text/html')
+        if (request.method !== 'GET' || !acceptsHtml || request.url?.startsWith('/__developer/')) return next()
+        try {
+          await refreshContent()
+          return next()
+        } catch (error) {
+          return writeResponse(response, 500, { error: error instanceof Error ? `Content refresh failed: ${error.message}` : 'Content refresh failed.' })
+        }
+      })
       server.middlewares.use(async (request, response, next) => {
         if (!request.url?.startsWith('/__developer/')) return next()
         try {
