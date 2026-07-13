@@ -100,8 +100,16 @@ function developerPlugin(): Plugin {
                 await mkdir(dirname(destination), { recursive: true })
                 await writeFile(destination, Buffer.from(String(upload.data ?? ''), 'base64'))
               }
-              const markdown = await readFile(join(temporary, 'article.md'), 'utf8').catch(() => { throw new Error('The selected folder must contain article.md at its root.') })
-              const resources = uploads.map((upload) => assertSafeResourcePath(upload.path)).filter((path) => path !== 'article.md')
+              let markdownName = 'article.md'
+              let markdown = await readFile(join(temporary, markdownName), 'utf8').catch(() => '')
+              if (!markdown) {
+                const rootMarkdown = uploads.map((upload) => assertSafeResourcePath(upload.path)).filter((path) => !path.includes('/') && path.toLowerCase().endsWith('.md'))
+                if (rootMarkdown.length !== 1) throw new Error('The selected folder must contain article.md or exactly one Markdown file at its root.')
+                markdownName = rootMarkdown[0]
+                markdown = await readFile(join(temporary, markdownName), 'utf8')
+                await rename(join(temporary, markdownName), join(temporary, 'article.md'))
+              }
+              const resources = uploads.map((upload) => assertSafeResourcePath(upload.path)).filter((path) => path !== markdownName)
               buildArticle({ slug, sourcePath: `data/${slug}/article.md`, raw: markdown, resources })
               await rename(temporary, target)
               await generateContent({ includeDrafts: true })

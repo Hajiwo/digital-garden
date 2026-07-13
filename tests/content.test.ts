@@ -52,8 +52,24 @@ describe('content contract', () => {
     expect(article.contentHtml).not.toContain('<script')
   })
 
-  it('rejects missing required metadata', () => {
-    expect(() => buildArticle({ slug: 'example', sourcePath, raw: '---\ntitle: Missing\ndate: 2026-01-01\ntags: []\n---\ntext', resources: [] })).toThrow('description')
+  it('infers metadata for plain Markdown without front matter', () => {
+    const article = buildArticle({ slug: 'plain-note', sourcePath, raw: '# A Plain Note\n\nThis first paragraph becomes the description.\n\n## Details\n\nMore text.', resources: [] })
+    expect(article.title).toBe('A Plain Note')
+    expect(article.description).toBe('This first paragraph becomes the description.')
+    expect(article.publishedAt).toBe('1970-01-01')
+    expect(article.tags).toEqual([])
+  })
+
+  it('accepts common exported metadata such as a Zhihu answer', () => {
+    const raw = '---\ntitle: 为什么越聪明的人越单纯？\nauthor: 理性情绪实验室\ntype: zhihu-answer\nsource: https://www.zhihu.com/example\ndownloaded: 2026-07-13\n---\n第一段内容会自动成为文章的描述，不再要求手动填写 description。\n\n## 第一个机制：认知资源\n\n正文。'
+    const article = buildArticle({ slug: 'zhihu', sourcePath, raw, resources: [] })
+    expect(article.publishedAt).toBe('2026-07-13')
+    expect(article.description).toContain('第一段内容')
+    expect(article.headings[0].id).toBe('第一个机制-认知资源')
+  })
+
+  it('calculates reading time for CJK text', () => {
+    expect(calculateReadingTime('汉'.repeat(801))).toBe(3)
   })
 
   it('filters drafts for production and uses deterministic date ordering', () => {

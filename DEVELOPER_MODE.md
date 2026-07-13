@@ -10,7 +10,9 @@ Open `http://localhost:5173/developer`. The Developer navigation item and its lo
 
 ## Importing an article
 
-Choose a directory whose root contains `article.md`. The folder may also contain a cover and a `resources/` directory. Developer mode validates the slug, front matter, Markdown, and local paths before moving the folder into `data/<slug>/`. Existing folders are never overwritten.
+Choose a directory whose root contains `article.md` or exactly one `.md` file. The folder may also contain a cover and a `resources/` directory. Developer mode validates the slug, Markdown, and local paths before moving the folder into `data/<slug>/`. Existing folders are never overwritten.
+
+Front matter is optional. When metadata is absent, Cyclopedia infers the title from the first H1 or folder slug, the description from the first paragraph, and accepts `date`, `publishedAt`, `published`, `created`, or `downloaded` as date fields. Missing dates use `1970-01-01`, missing tags become an empty list, and tags may be either a YAML list or a comma-separated string.
 
 ## Categories
 

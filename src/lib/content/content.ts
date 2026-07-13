@@ -69,8 +69,10 @@ export function calculateReadingTime(markdown: string): number {
     .replace(/`[^`]*`/g, ' ')
     .replace(/!?(\[[^\]]*\])\([^)]*\)/g, '$1')
     .replace(/[#>*_~|]/g, ' ')
-  const wordCount = text.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE))
+  const cjkCount = (text.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu) ?? []).length
+  const nonCjkText = text.replace(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu, ' ')
+  const wordCount = nonCjkText.trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE + cjkCount / 400))
 }
 
 export function extractHeadings(markdown: string): ArticleHeading[] {
@@ -82,7 +84,7 @@ export function extractHeadings(markdown: string): ArticleHeading[] {
     const match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line)
     if (!match) return []
     const text = match[2].replace(/[*_`]/g, '').trim()
-    const base = text.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'section'
+    const base = text.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{Letter}\p{Number}]+/gu, '-').replace(/(^-|-$)/g, '') || 'section'
     const occurrence = counts.get(base) ?? 0
     counts.set(base, occurrence + 1)
     return [{ id: occurrence ? `${base}-${occurrence + 1}` : base, text, depth: match[1].length }]
@@ -98,13 +100,35 @@ export function resourceType(path: string): ArticleResourceType {
   return 'other'
 }
 
-function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleInput): Omit<Article, 'contentHtml' | 'headings' | 'resources'> {
-  const title = asNonEmptyString(data.title, 'title', input.sourcePath)
-  const description = asNonEmptyString(data.description, 'description', input.sourcePath)
-  const tags = data.tags
-  if (!Array.isArray(tags) || tags.some((tag) => typeof tag !== 'string' || tag.trim() === '')) {
-    throw new ContentValidationError('field "tags" must be an array of non-empty strings', input.sourcePath)
+function inferTitle(data: FrontMatter, body: string, slug: string): string {
+  if (typeof data.title === 'string' && data.title.trim()) return data.title.trim()
+  const heading = /^#\s+(.+?)\s*#*\s*$/m.exec(body)?.[1]?.trim()
+  if (heading) return heading.replace(/[*_`]/g, '')
+  return slug.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+}
+
+function inferDescription(data: FrontMatter, body: string): string {
+  for (const field of ['description', 'summary', 'excerpt', 'abstract']) {
+    const value = data[field]
+    if (typeof value === 'string' && value.trim()) return value.trim()
   }
+  const paragraph = body.split(/\n\s*\n/).map((block) => block.trim()).find((block) => block && !/^(#{1,6}\s|```|~~~|!\[|<)/.test(block)) ?? 'Imported Markdown article.'
+  const plain = paragraph.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`>#~]/g, '').replace(/\s+/g, ' ').trim()
+  return plain.length > 180 ? `${plain.slice(0, 179).trim()}…` : plain
+}
+
+function normalizeTags(data: FrontMatter, sourcePath: string): string[] {
+  const value = data.tags ?? data.keywords ?? data.topics
+  if (value === undefined || value === null || value === '') return []
+  if (typeof value === 'string') return value.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean)
+  if (!Array.isArray(value) || value.some((tag) => typeof tag !== 'string')) throw new ContentValidationError('field "tags" must be a string or an array of strings', sourcePath)
+  return value.map((tag) => String(tag).trim()).filter(Boolean)
+}
+
+function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleInput): Omit<Article, 'contentHtml' | 'headings' | 'resources'> {
+  const title = inferTitle(data, body, input.slug)
+  const description = inferDescription(data, body)
+  const tags = normalizeTags(data, input.sourcePath)
   const providedReadingTime = data.readingTime
   if (providedReadingTime !== undefined && (typeof providedReadingTime !== 'number' || !Number.isFinite(providedReadingTime) || providedReadingTime <= 0)) {
     throw new ContentValidationError('field "readingTime" must be a positive number', input.sourcePath)
@@ -118,11 +142,11 @@ function normalizeMetadata(data: FrontMatter, body: string, input: BuildArticleI
     slug: assertSafeSlug(input.slug, input.sourcePath),
     title,
     description,
-    publishedAt: normalizeIsoDate(data.date, 'date', input.sourcePath),
+    publishedAt: normalizeIsoDate(data.date ?? data.publishedAt ?? data.published ?? data.created ?? data.downloaded ?? '1970-01-01', 'date', input.sourcePath),
     ...(data.updated === undefined ? {} : { updatedAt: normalizeIsoDate(data.updated, 'updated', input.sourcePath) }),
     ...(cover ? { coverUrl: publicResourceUrl(input.slug, cover) } : {}),
     ...(data.category === undefined ? {} : { category: asNonEmptyString(data.category, 'category', input.sourcePath) }),
-    tags: tags.map((tag) => tag.trim()),
+    tags,
     featured: data.featured === true,
     readingTimeMinutes: readingTime,
   }
