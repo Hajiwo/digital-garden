@@ -1,12 +1,13 @@
 ---
 title: "The flavor of the bitter lesson for computer vision"
-description: Notes on building a personal knowledge system that invites return.
-date: 2026-07-15
+description: From Vincent Sitzmann
+date: 2026-07-12
 original_link: "https://www.vincentsitzmann.com/blog/bitter_lesson_of_cv/"
 category: Knowledge Design
 published: 2026-02-01
 tags:
-  - clippings, computer vision
+  - clippings
+  - computer vision
 ---
 
 ![Portrait of Vincent Sitzmann](https://www.vincentsitzmann.com/_astro/vincent.Dvoy81k6_1n4HGu.avif,%20/_astro/vincent.Dvoy81k6_1n4HGu.avif)(https://www.vincentsitzmann.com/)
