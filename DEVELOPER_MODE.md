@@ -32,6 +32,8 @@ The Homepage Identity panel edits the public homepage title and description. The
 
 The palette selector in the site header switches between Editorial, Reading, Geek, and Minimal presentation modes. The selection is stored locally in the browser and remains independent of the light/dark color-theme control.
 
+Public browse categories are generated automatically from distinct article tags. Adding or removing a tag in Markdown front matter updates the homepage topic list and Explore filters after content is rebuilt.
+
 ## Original source links
 
 Article front matter may include `original_link: "https://example.com/article"`. Existing `source` and `originalUrl` URL fields are also recognized. The article reader displays a safe external link to the original website.

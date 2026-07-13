@@ -59,10 +59,14 @@ async function updateArticleCategory(from: string, to?: string): Promise<void> {
 async function developerState() {
   const categories = await readJson<Category[]>(categoriesFile, [])
   const site = await readJson<{ background?: string; title?: string; description?: string }>(siteFile, {})
+  const generatedArticles = await readJson<Array<{ tags?: string[] }>>(join(root, 'public', 'generated-content', 'articles.json'), [])
+  const tagCounts = new Map<string, number>()
+  for (const article of generatedArticles) for (const tag of article.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
   const backgrounds = await readdir(backgroundDirectory, { withFileTypes: true }).catch(() => [])
   const entries = await readdir(dataDirectory, { withFileTypes: true })
   return {
     categories,
+    tags: [...tagCounts].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ name, count })),
     background: site.background ?? '',
     siteTitle: site.title ?? 'Cyclopedia',
     siteDescription: site.description ?? 'Ideas worth keeping, thoughtfully collected.\nA living library of technology, systems, and design.',

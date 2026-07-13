@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertSafeResourcePath, assertSafeSlug, assertUniqueSlugs, buildArticle, calculateReadingTime, excludeProductionDrafts, extractHeadings, normalizeIsoDate, publicResourceUrl, sortArticles } from '../src/lib/content/content'
+import { buildTagIndex } from '../src/lib/content/tags'
 
 const sourcePath = 'data/example/article.md'
 const valid = `---
@@ -87,5 +88,9 @@ describe('content contract', () => {
     expect(excludeProductionDrafts(articles, true).map((article) => article.slug)).toEqual(['zeta', 'alpha'])
     expect(sortArticles(excludeProductionDrafts(articles, true)).map((article) => article.slug)).toEqual(['alpha', 'zeta'])
     expect(excludeProductionDrafts(articles, false)).toHaveLength(3)
+  })
+
+  it('derives categories and counts dynamically from distinct tags', () => {
+    expect(buildTagIndex([{ tags: ['AI', 'Agents'] }, { tags: ['AI', 'Design'] }, { tags: [] }])).toEqual({ categories: ['Agents', 'AI', 'Design'], counts: { Agents: 1, AI: 2, Design: 1 } })
   })
 })
