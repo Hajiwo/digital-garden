@@ -3,7 +3,7 @@ import { buildTagIndex } from './lib/content/tags'
 import type { Article, SiteSettings } from './types'
 
 async function loadJson<T>(url: string, fallback: T): Promise<T> {
-  try { const response = await fetch(url); return response.ok ? await response.json() as T : fallback } catch { return fallback }
+  try { const response = await fetch(url, { cache: 'no-store' }); return response.ok ? await response.json() as T : fallback } catch { return fallback }
 }
 const summaries = await loadJson<ArticleSummary[]>('/generated-content/articles.json', [])
 const documents = await Promise.all(summaries.map(({ slug }) => loadJson<GeneratedArticle | null>(`/generated-content/articles/${slug}.json`, null)))
