@@ -263,4 +263,4 @@ function developerPlugin(): Plugin {
   }
 }
 
-export default defineConfig(({ command }) => ({ plugins: [react(), tailwindcss(), ...(command === 'serve' ? [developerPlugin()] : [])] }))
+export default defineConfig(({ command }) => ({ base: command === 'build' ? (process.env.VITE_BASE_PATH ?? '/') : '/', plugins: [react(), tailwindcss(), ...(command === 'serve' ? [developerPlugin()] : [])] }))
